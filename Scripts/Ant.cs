@@ -7,10 +7,8 @@ using Unity.MLAgents.Sensors;
 using Random = UnityEngine.Random;
 using UnityEngine;
 
-public class Ant : Agent, IIntercom {
+public class Ant : Agent {
 
-
-    IntercomStateMachine intercomStateMachine = new IntercomStateMachine();
 
     enum CommStatusEnum { NONE, COLLIDED, HANDSHAKE, CONNECTED, WAITING_FOR_RESPONSE };
 
@@ -96,6 +94,7 @@ public class Ant : Agent, IIntercom {
 
     private long tickNum = 0;
     private Ant connectedAgent = null;
+    private IntercomStateMachine intercomStateMachine = null;
     private int communicationLockTimeLeft;
 
     private bool resourceExchangeEnabled = false;
@@ -207,10 +206,12 @@ public class Ant : Agent, IIntercom {
                 break;
             case "agent":
                 if (connectedAgent == null) {
-                    connectedAgent = collision.gameObject.GetComponent<Ant>();
-                    communicationLockTimeLeft = communicationLockTime;
-                    handshakeBranchEnabledActions.Clear();
-                    handshakeBranchEnabledActions.Add(ACTION_HANDSHAKE_IDX);
+                    Ant connectedAgent = collision.gameObject.GetComponent<Ant>();
+                    var localStateMachine = new IntercomStateMachine();
+                    var remoteStateMachine = new IntercomStateMachine(localStateMachine);
+                    localStateMachine.init(remoteStateMachine);
+                    intercomStateMachine = localStateMachine;
+                    connectedAgent.intercomStateMachine = remoteStateMachine;
                 }
                 else {
                     // do nothing - already busy with some other communication
@@ -268,35 +269,20 @@ public class Ant : Agent, IIntercom {
             //AddReward(-0.01f); // rotate penalty
         };
 
-        var setColorCommand = discreteActions[0];
-        var handshakeCommand = discreteActions[1];
-        var commCommand = discreteActions[2];
-        var commExchWaterFood = discreteActions[3];
-        var commExchFoodWater = discreteActions[4];
-        //var askResourceCommand = discreteActions[2];
-        //var proposeExchangeCommand = discreteActions[3];
+        int setColorCommand = discreteActions[0];
+        if (setColorCommand != ACTION_SETCOLOR_DONOTHING_IDX)
+            setColor(setColorCommand - 1);
 
-        //if (setColorCommand != ACTION_SETCOLOR_DONOTHING_IDX)
-        //    setColor(setColorCommand - 1);
-
-        if (handshakeCommand == ACTION_HANDSHAKE_IDX)
-            handshakeAction();
-        if (handshakeCommand == ACTION_HANDSHAKE_ACCEPT_IDX)
-            handshakeAcceptAction();
-        if (handshakeCommand == ACTION_HANDSHAKE_REJECT_IDX)
-            handshakeRejectAction();
-
-        if (commCommand == ACTION_COMM_ACCEPT_IDX)
-            proposeExchangeAccept();
-        if (commCommand == ACTION_COMM_REJECT_IDX)
-            proposeExchangeReject();
-
-        if (commExchWaterFood > 0)
-            proposeExchangeWaterFood(commExchWaterFood);
-        if (commExchFoodWater > 0)
-            proposeExchangeFoodWater(commExchFoodWater);
-
-        //AddReward(0.0001f);
+        if (discreteActions.Length > 1) {
+            int[] intercomCommands = new List<int>(discreteActions)
+                        .GetRange(1, discreteActions.Length-1)
+                        .ToArray();
+            if (intercomStateMachine != null) {
+                var context = new Context();
+                intercomStateMachine.setContext(context);
+                intercomStateMachine.onCommand(new MLCommand(intercomCommands));
+            }
+        }
     }
 
 
@@ -304,12 +290,12 @@ public class Ant : Agent, IIntercom {
         tickNum++;
         if (communicationLockTimeLeft == 0)
             MoveAgent(actionBuffers, false);
-        //MoveAgent(actionBuffers.DiscreteActions);
+            //MoveAgent(actionBuffers.DiscreteActions);
         else {
             MoveAgent(actionBuffers, true);
             communicationLockTimeLeft--;
             if (communicationLockTimeLeft == 0)
-                disconnectAgent();
+                intercomStateMachine.onDisconnect();
         }
     }
 
@@ -360,14 +346,19 @@ public class Ant : Agent, IIntercom {
 
 
     public override void WriteDiscreteActionMask(IDiscreteActionMask actionMask) {
+        // Example:
+        // actionMask.SetActionEnabled(branch, actionIndex, isEnabled);
+        // actionMask.SetActionEnabled(branch, new int[4] { 0, 1, 2, 3 }, isEnabled);
 
         // branch0 = changeColor (0,1,2)
         // branch1 = handshakeCommands(0,1,2,3)  0 - DoNothing, 1 - handshake, 2 - acept, 3 - reject
         // branch2 = commCommands(0,1,2,3) 0 - DoNothing, 1 - askResource, 2 - proposeExchange, 3 - giveResource, 4 - exchange, 5 - reject
 
-        // actionMask.SetActionEnabled(branch, actionIndex, isEnabled);
-        // actionMask.SetActionEnabled(branch, new int[4] { 0, 1, 2, 3 }, isEnabled);
+        if (intercomStateMachine != null) {
+            intercomStateMachine.WriteDiscreteActionMask(actionMask);
+        }
 
+        /*
         actionMask.SetActionEnabled(1, ACTION_HANDSHAKE_DONOTHING_IDX, true);   // cannot disable whole branch
         foreach (int i in handshakeBranchActions) {
             actionMask.SetActionEnabled(1, i, handshakeBranchEnabledActions.Contains(i));
@@ -386,6 +377,7 @@ public class Ant : Agent, IIntercom {
         for (int i = 1; i <= 10; i = i + 1) {
             actionMask.SetActionEnabled(4, i, resourceExchangeEnabled);
         }
+        */
     }
 
 
@@ -405,36 +397,7 @@ public class Ant : Agent, IIntercom {
     }
 
 
-    public void handshakeAction() {
-        if (debugComm)
-            Debug.Log("AgentID = " + agentID + " handshakeAction");
-        communicationLockTimeLeft = communicationLockTime;
-        commStatus = CommStatusEnum.HANDSHAKE;
-        if (connectedAgent != null)
-            connectedAgent.handshakeReceiver(this);
-        handshakeBranchEnabledActions.Clear();
-    }
-
-    public void handshakeAcceptAction() {
-        if (debugComm)
-            Debug.Log("AgentID = " + agentID + " handshakeAceptAction");
-        handshakeBranchEnabledActions.Clear();
-        communicationLockTimeLeft = communicationLockTime;
-        commStatus = CommStatusEnum.CONNECTED;
-        if (connectedAgent != null)
-            connectedAgent.handshakeResponseReceiver(IIntercom.ResponseCode.ACCEPT);
-    }
-
-    public void handshakeRejectAction() {
-        if (debugComm)
-            Debug.Log("AgentID = " + agentID + " handshakeRejectAction");
-        handshakeBranchEnabledActions.Clear();
-        if (connectedAgent != null)
-            connectedAgent.handshakeResponseReceiver(IIntercom.ResponseCode.REJECT);
-        communicationLockTimeLeft = 0;
-    }
-
-
+    /*
     // ask other agent for resource
     public void askResourceAction() {
         if (debugComm)
@@ -514,6 +477,7 @@ public class Ant : Agent, IIntercom {
             disconnectAgent();
         }
     }
+    */
 
 
     public override void Heuristic(in ActionBuffers actionsOut) {
@@ -597,15 +561,7 @@ public class Ant : Agent, IIntercom {
     private void Init() {
         agentID = agentIdCount++;
 
-        handshakeBranchActions.Add(ACTION_HANDSHAKE_IDX);
-        handshakeBranchActions.Add(ACTION_HANDSHAKE_ACCEPT_IDX);
-        handshakeBranchActions.Add(ACTION_HANDSHAKE_REJECT_IDX);
-
-        commBranchActions.Add(ACTION_COMM_ACCEPT_IDX);
-        commBranchActions.Add(ACTION_COMM_REJECT_IDX);
-
         antEnvController = this.transform.parent.GetComponent<AntEnvController>();
-
         agentRb = this.GetComponent<Rigidbody>();
         header = this.transform.parent.Find("Header").gameObject.GetComponent<TextMesh>();
         bodyRenderer = this.GetComponent<Renderer>();
@@ -626,8 +582,7 @@ public class Ant : Agent, IIntercom {
         waterProposedForExchange = 0;
         foodProposedForExchange = 0;
         resourceExchangeEnabled = false;
-        handshakeBranchEnabledActions.Clear();
-        commBranchEnabledActions.Clear();
+
         //area.GetComponent<GameArea>().reset();
         agentRb.velocity = Vector3.zero;
         setColor(0);
@@ -653,53 +608,8 @@ public class Ant : Agent, IIntercom {
     }
 
 
-    public void handshakeReceiver(Ant agent1) {
-        if (debugComm)
-            Debug.Log("AgentID = " + agentID + " handshakeReceiver +   request from "+agent1.agentID);
-        if (connectedAgent == null) {
-            connectedAgent = agent1;
-            communicationLockTimeLeft = communicationLockTime;
-            handshakeBranchEnabledActions.Clear();
-            handshakeBranchEnabledActions.Add(ACTION_HANDSHAKE_ACCEPT_IDX);
-            handshakeBranchEnabledActions.Add(ACTION_HANDSHAKE_REJECT_IDX);
-            commStatus = CommStatusEnum.WAITING_FOR_RESPONSE;
-        }
-    }
 
-
-    public void handshakeResponseReceiver(IIntercom.ResponseCode responseCode) {
-        if (debugComm)
-            Debug.Log("AgentID = " + agentID + " handshakeResponseReceiver");
-        if (responseCode == IIntercom.ResponseCode.ACCEPT)
-            resourceExchangeEnabled = true;
-        else {
-            disconnectAgent();
-        }
-    }
-
-
-    private void disconnectAgent(bool sendDisconnectSignal = true) {
-        resourceExchangeEnabled = false;
-        handshakeBranchEnabledActions.Clear();
-        commBranchEnabledActions.Clear();
-        if (connectedAgent != null && sendDisconnectSignal) {
-            connectedAgent.diconnectReceiver();
-        }
-        connectedAgent = null;
-        communicationLockTimeLeft = 0;
-        commStatus = CommStatusEnum.NONE;
-    }
-
-    public void diconnectReceiver() {
-        if (connectedAgent != null)
-            disconnectAgent(false);
-    }
-
-    public void askForResourceReceiver() {
-        if (debugComm)
-            Debug.Log("AgentID = " + agentID + " askForResourceReceiver");
-    }
-
+    /*
     public void exchangeWaterFoodReceiver(int amount) {
         if (debugComm)
             Debug.Log("AgentID = " + agentID + " exchangeWaterFoodReceiver");
@@ -735,6 +645,7 @@ public class Ant : Agent, IIntercom {
         }
         disconnectAgent();
     }
+    */
 
 
     public Color32 ToColor(int hexVal) {

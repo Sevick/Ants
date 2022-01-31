@@ -7,18 +7,15 @@ using Unity.MLAgents.Sensors;
 using Random = UnityEngine.Random;
 using UnityEngine;
 
+
+//throw new System.NotImplementedException();
 public class Ant : Agent {
-
-
-    enum CommStatusEnum { NONE, COLLIDED, HANDSHAKE, CONNECTED, WAITING_FOR_RESPONSE };
 
     static int agentIdCount = 0;
     public int agentID;
 
-    CommStatusEnum commStatus = CommStatusEnum.NONE;
-
     [HideInInspector]
-    public Dictionary<LifeResourceType, Tank> resourceMap = new Dictionary<LifeResourceType, Tank>();
+    public Dictionary<LifeResourceType, ITank> resourceMap = new Dictionary<LifeResourceType, ITank>();
 
     private GameObject area;
     private Rigidbody agentRb;
@@ -47,16 +44,16 @@ public class Ant : Agent {
 
     [Header("Movement configuration")]
     public float moveSpeed = 2;
-    public float turnSpeed = 300;
+    public float turnSpeed = 100;
     [Tooltip("Number of ticks agent will be locked for communications")]
     public int communicationLockTime = 20;
 
     [Header("Rewards configuration")]
     public float DEATH_REWARD = -1.0f;
-    public float RESOURCE_CONSUMPTION_REWARD = 0.5f;
-    public float EXCHANGE_REWARD = 0.1f;
+    public float RESOURCE_CONSUMPTION_REWARD = 0.02f;
+    public float EXCHANGE_REWARD = 0.01f;
     [Tooltip("0 to disable hunger reward")]
-    public float RESOURCE_SHORTAGE_REWARD = -0.0f;
+    public float RESOURCE_SHORTAGE_REWARD = -0.01f;
     [Tooltip("0 to disable satiety reward")]    
     public float RESOURCE_AMPLE_REWARD = 0.0f;
 
@@ -67,49 +64,25 @@ public class Ant : Agent {
     //branch 0
     private int ACTION_SETCOLOR_DONOTHING_IDX = 0;
 
-    //branch 1
-    private int ACTION_HANDSHAKE_DONOTHING_IDX = 0;
-    private int ACTION_HANDSHAKE_IDX = 1;
-    private int ACTION_HANDSHAKE_ACCEPT_IDX = 2;
-    private int ACTION_HANDSHAKE_REJECT_IDX = 3;
-
-    //branch 2
-    private int ACTION_COMM_DONOTHING_IDX = 0;
-    private int ACTION_COMM_ACCEPT_IDX = 1;
-    private int ACTION_COMM_REJECT_IDX = 2;
-
-    //branch 3 PROPOSE_EXCHANGE water->food
-    // >0 - % of resource for exchange (1step - 10%)
-
-    //branch 4 PROPOSE_EXCHANGE food->water
-    // >0 - % of resource for exchange (1step - 10%)
-
-    private HashSet<int> handshakeBranchActions = new HashSet<int>();
-    private HashSet<int> commBranchActions = new HashSet<int>();
-
-    private HashSet<int> handshakeBranchEnabledActions = new HashSet<int>();
-    private HashSet<int> commBranchEnabledActions = new HashSet<int>();
-
-    //private int InternalState[];
 
     private long tickNum = 0;
     private Ant connectedAgent = null;
-    private IntercomStateMachine intercomStateMachine = null;
-    private int communicationLockTimeLeft;
 
-    private bool resourceExchangeEnabled = false;
-    private int waterProposedForExchange = 0;
-    private int foodProposedForExchange = 0;
+    public IntercomStateMachine stateMachine;
+    private int communicationLockTimeLeft = 0;
 
     private AntEnvController antEnvController;
 
     [HideInInspector]
     public int test = 0;
 
+    GameObject foodTanker;
+    GameObject waterTanker;
+
+
     private void Awake() {
         //Debug.Log("Awake");
         Init();
-        //area.GetComponent<GameArea>().awake();
         SetResetParams();
     }
 
@@ -133,12 +106,12 @@ public class Ant : Agent {
         else
             setColor(1);
 
-        foreach (KeyValuePair<LifeResourceType, Tank> entry in resourceMap) {
+        foreach (KeyValuePair<LifeResourceType, ITank> entry in resourceMap) {
             entry.Value.tick();
-            if (RESOURCE_SHORTAGE_REWARD!=0 && (float) entry.Value.currentVolume / entry.Value.capacity < 0.1)
+            if (RESOURCE_SHORTAGE_REWARD!=0 && (float) entry.Value.currentLevel() / entry.Value.tankCapacity() < 0.1)
                 addReward(RESOURCE_SHORTAGE_REWARD);
             
-            if (RESOURCE_AMPLE_REWARD!=0 && (float)entry.Value.currentVolume / entry.Value.capacity > 0.1)
+            if (RESOURCE_AMPLE_REWARD!=0 && (float)entry.Value.currentLevel() / entry.Value.tankCapacity() > 0.1)
                 addReward(RESOURCE_AMPLE_REWARD);
         }
 
@@ -162,15 +135,17 @@ public class Ant : Agent {
         AddReward(score);
     }
 
-    void Die(string message) {
+    void Die(ITank sender) {
         //Debug.Log("Die called with message: " + message);
+        bodyRenderer.material.SetColor("_Color", new Color32(255, 0, 0, 255));
+
         addReward(DEATH_REWARD);
-
-        //Instantiate(this, new Vector3(Random.Range(-50, 50), 5f, Random.Range(-50, 50)) + area.transform.position, Quaternion.Euler(new Vector3(0f, Random.Range(0, 360))));
-
-
         antEnvController.deactivateAgent(this);
+
         /*
+        Ant newAgent = Instantiate(this, new Vector3(Random.Range(-50, 50), 5f, Random.Range(-50, 50)) + area.transform.position, Quaternion.Euler(new Vector3(0f, Random.Range(0, 360))));
+        Destroy(gameObject);
+
         this.gameObject.SetActive(false);
         this.gameObject.SetActive(true);
         if (useGroup) {
@@ -182,7 +157,6 @@ public class Ant : Agent {
             EndEpisode();
         }
         */
-        //bodyRenderer.material.SetColor("_Color", new Color32(255, 0, 0, 255));
     }
 
 
@@ -208,25 +182,26 @@ public class Ant : Agent {
                 if (connectedAgent == null) {
                     Ant connectedAgent = collision.gameObject.GetComponent<Ant>();
                     var localStateMachine = new IntercomStateMachine();
-                    var remoteStateMachine = new IntercomStateMachine(localStateMachine);
-                    localStateMachine.init(remoteStateMachine);
-                    intercomStateMachine = localStateMachine;
-                    connectedAgent.intercomStateMachine = remoteStateMachine;
+                    var remoteStateMachine = new IntercomStateMachine(new Context(localStateMachine, connectedAgent.resourceMap, connectedAgent.addReward));
+                    localStateMachine.init(new Context(remoteStateMachine, resourceMap, this.addReward));
+                    stateMachine = localStateMachine;
+                    connectedAgent.stateMachine = remoteStateMachine;
+                    communicationLockTimeLeft = communicationLockTime;
                 }
                 else {
                     // do nothing - already busy with some other communication
                 }
                 break;
             case "resource":
-                ResourceProvider resourceProvider = collision.gameObject.GetComponent<ResourceProvider>();
-                if (resourceProvider != null) {
+                Dispenser resourceDispenser = collision.gameObject.GetComponent<Dispenser>();
+                if (resourceDispenser != null) {
                     try {
-                        Tank tank = resourceMap[resourceProvider.lifeResource];
-                        int refilledAmount = tank.refill(resourceProvider);
-                        //Debug.Log("Consumed " + refilledAmount + " of " + resourceProvider.lifeResource + " currentLevel=" + tank.currentVolume);
+                        ITank tank = resourceMap[resourceDispenser.tankResourceType()];
+                        int refilledAmount = tank.pumpFrom(resourceDispenser.tank, tank.tankConsumeLimit());
+                        //Debug.Log("Consumed " + refilledAmount + " of " + resourceDispenser.tankResourceType() + " currentLevel=" + tank.currentLevel());
                         if (refilledAmount > 0) {
                             if (Academy.Instance.EnvironmentParameters.GetWithDefault("curriculum_option", defaultSceneOption) > 0) {
-                                addReward(RESOURCE_CONSUMPTION_REWARD * refilledAmount / (tank.currentVolume - refilledAmount));
+                                addReward(RESOURCE_CONSUMPTION_REWARD * refilledAmount / (tank.currentLevel() - refilledAmount));
                             }
                             else {
                                 addReward(1.0f);
@@ -274,13 +249,11 @@ public class Ant : Agent {
             setColor(setColorCommand - 1);
 
         if (discreteActions.Length > 1) {
-            int[] intercomCommands = new List<int>(discreteActions)
-                        .GetRange(1, discreteActions.Length-1)
-                        .ToArray();
-            if (intercomStateMachine != null) {
-                var context = new Context();
-                intercomStateMachine.setContext(context);
-                intercomStateMachine.onCommand(new MLCommand(intercomCommands));
+            if (stateMachine != null) {
+                if (stateMachine.onCommand(new MLCommand(discreteActions.Array)) == null) {
+                    connectedAgent = null;
+                    stateMachine = null;                    
+                }
             }
         }
     }
@@ -293,9 +266,15 @@ public class Ant : Agent {
             //MoveAgent(actionBuffers.DiscreteActions);
         else {
             MoveAgent(actionBuffers, true);
+            //MoveAgent(actionBuffers.DiscreteActions);            
             communicationLockTimeLeft--;
             if (communicationLockTimeLeft == 0)
-                intercomStateMachine.onDisconnect();
+                if (stateMachine != null) {
+                    Debug.Log("Timeout disconnect");
+                    stateMachine.onDisconnect();
+                    stateMachine = null;
+                    connectedAgent = null;
+                }
         }
     }
 
@@ -353,23 +332,19 @@ public class Ant : Agent {
         // branch0 = changeColor (0,1,2)
         // branch1 = handshakeCommands(0,1,2,3)  0 - DoNothing, 1 - handshake, 2 - acept, 3 - reject
         // branch2 = commCommands(0,1,2,3) 0 - DoNothing, 1 - askResource, 2 - proposeExchange, 3 - giveResource, 4 - exchange, 5 - reject
+        
+        for (var i = 1; i <= (int) IIntercomState.IntercomCommands.ACTION_DONOTHING_LAST; i++) {
+            actionMask.SetActionEnabled(IntercomState.INTERCOM_ACTIONS_BRANCH, i, false);
+        }
+        for (var i = 1; i <= (int)IIntercomState.IntercomCommandResponse.ACTION_DONOTHING_LAST; i++) {
+            actionMask.SetActionEnabled(IntercomState.INTERCOM_RESPONSES_BRANCH, i, false);
+        }
 
-        if (intercomStateMachine != null) {
-            intercomStateMachine.WriteDiscreteActionMask(actionMask);
+        if (stateMachine != null) {
+            stateMachine.WriteDiscreteActionMask(actionMask);
         }
 
         /*
-        actionMask.SetActionEnabled(1, ACTION_HANDSHAKE_DONOTHING_IDX, true);   // cannot disable whole branch
-        foreach (int i in handshakeBranchActions) {
-            actionMask.SetActionEnabled(1, i, handshakeBranchEnabledActions.Contains(i));
-        }
-
-        actionMask.SetActionEnabled(1, ACTION_COMM_DONOTHING_IDX, true);    // cannot disable whole branch
-        foreach (int i in commBranchActions) {
-            actionMask.SetActionEnabled(2, i, commBranchEnabledActions.Contains(i));
-        }
-
-
         for (int i = 1; i <= 10; i = i + 1) {
             actionMask.SetActionEnabled(3, i, resourceExchangeEnabled);
         }
@@ -395,90 +370,6 @@ public class Ant : Agent {
                 break;
         }
     }
-
-
-    /*
-    // ask other agent for resource
-    public void askResourceAction() {
-        if (debugComm)
-            Debug.Log("AgentID = " + agentID + " askResourceAction");
-    }
-
-    // response to askResource from other agent
-    private void giveResourceAction() {
-        if (debugComm)
-            Debug.Log("AgentID = " + agentID + " giveResourceAction");
-    }
-
-
-    //propose exchange water for food to another agent
-    private void proposeExchangeWaterFood(int amountToPropose) {
-        if (debugComm)
-            Debug.Log("AgentID = " + agentID + " proposeExchangeWaterFood");
-        if (connectedAgent != null)
-            connectedAgent.exchangeWaterFoodReceiver((int) (1.0f*amountToPropose/10 * resourceMap[LifeResourceType.Water].currentVolume));
-    }
-
-    //propose exchange food for water to another agent
-    private void proposeExchangeFoodWater(int amountToPropose) {
-        if (debugComm)
-            Debug.Log("AgentID = " + agentID + " proposeExchangeFoodWater");
-        if (connectedAgent != null)
-            connectedAgent.exchangeFoodWaterReceiver((int) (1.0f * amountToPropose / 10 * resourceMap[LifeResourceType.Food].currentVolume));
-    }
-
-    //accept exchange proposed by other agent
-    private void proposeExchangeAccept() {
-        if (connectedAgent == null)
-            return;
-        Debug.Log("AgentID = " + agentID + " proposeExchangeAccept, partner - " + connectedAgent.agentID);
-        connectedAgent.exchangeResponseReceiver(IIntercom.ResponseCode.ACCEPT);
-
-        if (foodProposedForExchange > 0) {
-            if (connectedAgent != null) {
-                var foodAmount = connectedAgent.resourceMap[LifeResourceType.Food].currentVolume >= foodProposedForExchange ?
-                    foodProposedForExchange : connectedAgent.resourceMap[LifeResourceType.Food].currentVolume;
-
-                if (resourceMap[LifeResourceType.Water].currentVolume + foodAmount > resourceMap[LifeResourceType.Water].capacity)
-                    foodAmount = resourceMap[LifeResourceType.Water].spaceLeft();
-
-                connectedAgent.resourceMap[LifeResourceType.Food].currentVolume -= foodAmount;
-                resourceMap[LifeResourceType.Water].currentVolume += foodAmount;
-            }
-            else {
-                // exception
-            }
-        }
-
-        if (waterProposedForExchange > 0) {
-            if (connectedAgent != null) {
-                var waterAmount = connectedAgent.resourceMap[LifeResourceType.Water].currentVolume >= waterProposedForExchange ?
-                    waterProposedForExchange : connectedAgent.resourceMap[LifeResourceType.Water].currentVolume;
-                
-                connectedAgent.resourceMap[LifeResourceType.Water].currentVolume -= waterAmount;
-
-                resourceMap[LifeResourceType.Food].currentVolume = resourceMap[LifeResourceType.Food].currentVolume + waterAmount > resourceMap[LifeResourceType.Food].capacity ?
-                                                                        resourceMap[LifeResourceType.Food].capacity : resourceMap[LifeResourceType.Food].currentVolume + waterAmount;
-            }
-            else {
-                // exception
-            }
-        }
-
-        disconnectAgent();
-    }
-
-    //accept exchange proposed by other agent
-    private void proposeExchangeReject() {
-        if (debugComm)
-            Debug.Log("AgentID = " + agentID + " proposeExchangeReject");
-        if (connectedAgent != null) {
-            connectedAgent.exchangeResponseReceiver(IIntercom.ResponseCode.REJECT);
-            disconnectAgent();
-        }
-    }
-    */
-
 
     public override void Heuristic(in ActionBuffers actionsOut) {
         heuristicContinuous(actionsOut);
@@ -547,14 +438,23 @@ public class Ant : Agent {
         else
             sensor.AddObservation(false);
 
-        sensor.AddObservation(waterProposedForExchange / 10);
-        sensor.AddObservation(foodProposedForExchange / 10);
-
-        sensor.AddObservation(resourceMap[LifeResourceType.Food].currentVolume / resourceMap[LifeResourceType.Food].capacity);
+        /*
+        sensor.AddObservation(resourceMap[LifeResourceType.Food].currentLevel() / resourceMap[LifeResourceType.Food].tankCapacity());
         if (Academy.Instance.EnvironmentParameters.GetWithDefault("curriculum_option", defaultSceneOption) >= 1)
-            sensor.AddObservation(resourceMap[LifeResourceType.Water].currentVolume / resourceMap[LifeResourceType.Water].capacity);
+            sensor.AddObservation(resourceMap[LifeResourceType.Water].currentLevel() / resourceMap[LifeResourceType.Water].tankCapacity());
+        */
+        sensor.AddObservation(resourceMap[LifeResourceType.Food].currentLevel());
+        sensor.AddObservation(resourceMap[LifeResourceType.Water].currentLevel());
 
-        sensor.AddOneHotObservation((int)commStatus, Enum.GetValues(typeof(CommStatusEnum)).Length);
+        sensor.AddObservation(communicationLockTimeLeft > 0);
+
+        if (stateMachine!=null)
+            sensor.AddOneHotObservation((int) stateMachine.type(), (int) IIntercomState.IntercomStateTypes.STATE_LAST);
+        else
+            sensor.AddOneHotObservation((int)IIntercomState.IntercomStateTypes.STATE_NULL, (int)IIntercomState.IntercomStateTypes.STATE_LAST);
+
+        //AddObservation(stateMachine.type());
+        //sensor.AddOneHotObservation((int)commStatus, Enum.GetValues(typeof(CommStatusEnum)).Length);
     }
 
 
@@ -564,29 +464,33 @@ public class Ant : Agent {
         antEnvController = this.transform.parent.GetComponent<AntEnvController>();
         agentRb = this.GetComponent<Rigidbody>();
         header = this.transform.parent.Find("Header").gameObject.GetComponent<TextMesh>();
-        bodyRenderer = this.GetComponent<Renderer>();
+        bodyRenderer = this.transform.Find("Body").gameObject.GetComponent<Renderer>();
         area = this.transform.parent.gameObject;
 
-        resourceMap = new Dictionary<LifeResourceType, Tank>();
-        resourceMap.Add(LifeResourceType.Food, new Tank(LifeResourceType.Food, FoodTankerVolume, eatAmountLimit, FoodTankerLeak, Die));
+        foodTanker = this.transform.Find("FoodTanker").gameObject;
+        waterTanker = this.transform.Find("WaterTanker").gameObject;
+
+        resourceMap = new Dictionary<LifeResourceType, ITank>();
+        resourceMap.Add(LifeResourceType.Food, new TankVis(
+                new TankLeak(LifeResourceType.Food, FoodTankerVolume, FoodTankerLeak, FoodTankerVolume, eatAmountLimit, eatAmountLimit, Die)
+                , foodTanker));
+
         if (Academy.Instance.EnvironmentParameters.GetWithDefault("curriculum_option", defaultSceneOption) >= 1)
-            resourceMap.Add(LifeResourceType.Water, new Tank(LifeResourceType.Water, FoodTankerVolume, drinkAmountLimit, WaterTankerLeak, Die));
+            resourceMap.Add(LifeResourceType.Water, new TankVis(
+                new TankLeak(LifeResourceType.Water, WaterTankerVolume, WaterTankerLeak, WaterTankerVolume, drinkAmountLimit, drinkAmountLimit, Die)
+                , waterTanker));
     }
 
 
     private void SetResetParams() {
-        commStatus = CommStatusEnum.NONE;
         tickNum = 0;
         communicationLockTimeLeft = 0;
         connectedAgent = null;
-        waterProposedForExchange = 0;
-        foodProposedForExchange = 0;
-        resourceExchangeEnabled = false;
 
         //area.GetComponent<GameArea>().reset();
         agentRb.velocity = Vector3.zero;
         setColor(0);
-        //bodyRenderer.material.SetColor("_Color", new Color32(0, 255, 0, 255));
+        bodyRenderer.material.SetColor("_Color", new Color32(0, 255, 0, 255));
         //transform.position = new Vector3(Random.Range(-50, 50), 5f, Random.Range(-50, 50)) + area.transform.position;
         //transform.rotation = Quaternion.Euler(new Vector3(0f, Random.Range(0, 360)));
 
@@ -596,7 +500,7 @@ public class Ant : Agent {
         this.gameObject.transform.Rotate(new Vector3(0, 0, 1), Random.Range(-10f, 10f));
         */
 
-        foreach (KeyValuePair<LifeResourceType, Tank> entry in resourceMap) {
+        foreach (KeyValuePair<LifeResourceType, ITank> entry in resourceMap) {
             entry.Value.reset();
         }
     }
@@ -607,51 +511,45 @@ public class Ant : Agent {
         SetResetParams();
     }
 
-
-
-    /*
-    public void exchangeWaterFoodReceiver(int amount) {
-        if (debugComm)
-            Debug.Log("AgentID = " + agentID + " exchangeWaterFoodReceiver");
-        waterProposedForExchange = amount;
-        commBranchEnabledActions.Clear();
-        commBranchEnabledActions.Add(ACTION_COMM_ACCEPT_IDX);
-        commBranchEnabledActions.Add(ACTION_COMM_REJECT_IDX);
-        setColor(2);
-        commStatus = CommStatusEnum.WAITING_FOR_RESPONSE;
-    }
-
-    public void exchangeFoodWaterReceiver(int amount) {
-        if (debugComm)
-            Debug.Log("AgentID = " + agentID + " exchangeFoodWaterReceiver");
-        foodProposedForExchange = amount;
-        commBranchEnabledActions.Clear();
-        commBranchEnabledActions.Add(ACTION_COMM_ACCEPT_IDX);
-        commBranchEnabledActions.Add(ACTION_COMM_REJECT_IDX);
-        setColor(2);
-        commStatus = CommStatusEnum.WAITING_FOR_RESPONSE;
-    }
-
-
-    public void exchangeResponseReceiver(IIntercom.ResponseCode responseCode) {
-        if (debugComm)
-            Debug.Log("AgentID = " + agentID + " exchangeResponseReceiver");
-        if (responseCode == IIntercom.ResponseCode.ACCEPT) {
-            Debug.Log("AgentID = " + agentID + " exchange accepted, partner - " + connectedAgent.agentID);
-            addReward(EXCHANGE_REWARD);
-        }
-        else {
-            //
-        }
-        disconnectAgent();
-    }
-    */
-
-
     public Color32 ToColor(int hexVal) {
         var r = (byte)((hexVal >> 16) & 0xFF);
         var g = (byte)((hexVal >> 8) & 0xFF);
         var b = (byte)(hexVal & 0xFF);
         return new Color32(r, g, b, 255);
+    }
+
+    public void OnDrawGizmos() {
+        
+
+        if (connectedAgent != null) {
+            Debug.Log("DrawConnection");
+            Vector3 a = this.gameObject.transform.position;
+            Vector3 b = connectedAgent.gameObject.transform.position;
+            float h = 5;
+
+            //Draw the parabola by sample a few times
+            Gizmos.color = Color.green;
+            Gizmos.DrawLine(a, b);
+            float count = 20;
+            Vector3 lastP = a;
+            for (float i = 0; i < count + 1; i++) {
+                Vector3 p = SampleParabola(a, b, h, i / count, this.gameObject.transform.up);
+                Gizmos.color = i % 2 == 0 ? Color.blue : Color.green;
+                Gizmos.DrawLine(lastP, p);
+                lastP = p;
+            }
+        }
+    }
+
+    Vector3 SampleParabola(Vector3 start, Vector3 end, float height, float t, Vector3 outDirection) {
+        float parabolicT = t * 2 - 1;
+        //start and end are not level, gets more complicated
+        Vector3 travelDirection = end - start;
+        Vector3 levelDirection = end - new Vector3(start.x, end.y, start.z);
+        Vector3 right = Vector3.Cross(travelDirection, levelDirection);
+        Vector3 up = outDirection;
+        Vector3 result = start + t * travelDirection;
+        result += ((-parabolicT * parabolicT + 1) * height) * up.normalized;
+        return result;
     }
 }

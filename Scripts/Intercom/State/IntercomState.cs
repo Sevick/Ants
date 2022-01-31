@@ -1,50 +1,52 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Unity.MLAgents.Actuators;
-using Unity.MLAgents;
 
 public abstract class IntercomState : IIntercomState {
 
-    protected const int INTERCOM_ACTIONS_BRANCH = 1;
+    public const int INTERCOM_ACTIONS_BRANCH = 1;
+    public const int INTERCOM_RESPONSES_BRANCH = 2;
 
-    protected string stateName;
-    protected IIntercomState partner;
+    protected IIntercomState.IntercomStateTypes stateType;
     protected Context context;
 
     protected long stateTime = 0;
 
-    public IntercomState(IIntercomState partner, string stateName) {
-        this.partner = partner;
-        this.stateName = stateName;
+    public IntercomState(Context context, IIntercomState.IntercomStateTypes stateType) {
+        this.context = context;
+        this.stateType = stateType;
     }
 
-    public void setContext(Context context) {
-        this.context = context;
+    public IIntercomState.IntercomStateTypes type() {
+        return stateType;
     }
 
     virtual public IntercomState onConnect() {
-        Debug.LogError(stateName + " Unexpected intercom onConnect");
+        //Debug.Log(stateName + " Unexpected intercom onConnect");
         return this;
     }
 
     virtual public IntercomState onIncomingCommand(IIntercomState.IntercomCommands command) {
-        Debug.LogError(stateName + " Unexpected intercom onIncomingCommand: " + command);
+        //Debug.Log(stateName + " Unexpected intercom onIncomingCommand: " + command);
         return this;
     }
 
     virtual public IntercomState onCommand(MLCommand mlCommand) {
-        Debug.LogError(stateName + " Unexpected intercom onCommand: " + mlCommand);
+        if (mlCommand.getBranch(INTERCOM_ACTIONS_BRANCH) != (int) IIntercomState.IntercomCommands.ACTION_DONOTHING) {
+            //Debug.Log(stateName + " Unexpected intercom onCommand INTERCOM_ACTIONS_BRANCH: " + mlCommand.getBranch(INTERCOM_ACTIONS_BRANCH));
+        }
+        if (mlCommand.getBranch(INTERCOM_RESPONSES_BRANCH) != (int)IIntercomState.IntercomCommands.ACTION_DONOTHING) {
+            //Debug.Log(stateName + " Unexpected intercom onCommand INTERCOM_RESPONSES_BRANCH: " + mlCommand.getBranch(INTERCOM_RESPONSES_BRANCH));
+        }
         return this;
     }
 
-    virtual public IntercomState onResponse(IIntercomState.IntercomCommands responseType) {
-        Debug.LogError(stateName + " Unexpected intercom onResponse: " + responseType);
+    virtual public IntercomState onResponse(IIntercomState.IntercomCommandResponse responseType, IIntercomState.IntercomCommands comman, Context remoteContext) {
+        //Debug.Log(stateName + " Unexpected intercom onResponse: " + responseType);
         return this;
     }
 
     virtual public IntercomState onDisconnect() {
-        partner.onIncomingDisconnect();
+        context.partner.onIncomingDisconnect();
         return null;
     }
 
@@ -52,9 +54,17 @@ public abstract class IntercomState : IIntercomState {
         return null;
     }
 
-    abstract public void WriteDiscreteActionMask(IDiscreteActionMask actionMask);
+    virtual public void WriteDiscreteActionMask(IDiscreteActionMask actionMask) {
+        // by default disable all actions (except first one - ACTION_DONOTHING (impossible to disable all action in branch)
+        for (var i=1; i<=(int) IIntercomState.IntercomCommands.ACTION_DONOTHING_LAST; i++) {
+            actionMask.SetActionEnabled(INTERCOM_ACTIONS_BRANCH, i, false);
+        }
+        for (var i = 1; i <= (int)IIntercomState.IntercomCommandResponse.ACTION_DONOTHING_LAST; i++) {
+            actionMask.SetActionEnabled(INTERCOM_RESPONSES_BRANCH, i, false);
+        }
+    }
 
     virtual public void tick() {
-
+        // TODO: Implement disconnect on timeout
     }
 }

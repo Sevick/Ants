@@ -1,33 +1,35 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using Unity.MLAgents.Actuators;
 
 public class IntercomHandshake : IntercomState {
 
-    public IntercomHandshake(IIntercomState partner) : base (partner, "IntercomHandshake") {
+    public IntercomHandshake(Context context) : base (context, IIntercomState.IntercomStateTypes.STATE_HANDSHAKE) {
     }
 
     override
     public IntercomState onCommand(MLCommand mlCommand) {
-        IIntercomState.IntercomCommands command = mlCommand.getBranch(INTERCOM_ACTIONS_BRANCH);
+        IIntercomState.IntercomCommands command = (IIntercomState.IntercomCommands) mlCommand.getBranch(INTERCOM_ACTIONS_BRANCH);
         switch (command) {
             case IIntercomState.IntercomCommands.ACTION_CONNECT_INITIATE:                
                 break; // Do nothing - connection from that partner already initialized
             case (int)IIntercomState.IntercomCommands.ACTION_DONOTHING:
                 // TODO: wait a few cycles?
                 break;
-            case IIntercomState.IntercomCommands.ACTION_CONNECT_ACCEPT:
-                partner.onResponse(command);
-                return new IntercomConnected(partner);
-            case IIntercomState.IntercomCommands.ACTION_CONNECT_REJECT:
-                partner.onResponse(command);
+            default:
+                //return base.onCommand(mlCommand);
+                break;
+        }
+
+        IIntercomState.IntercomCommandResponse response = (IIntercomState.IntercomCommandResponse) mlCommand.getBranch(INTERCOM_RESPONSES_BRANCH);
+        switch (response) {
+            case IIntercomState.IntercomCommandResponse.ACCEPT:
+                context.partner.onResponse(response, IIntercomState.IntercomCommands.ACTION_CONNECT_INITIATE, context);
+                return new IntercomConnected(context);
+            case IIntercomState.IntercomCommandResponse.REJECT:
+                context.partner.onResponse(response, IIntercomState.IntercomCommands.ACTION_CONNECT_INITIATE, context);
                 return null;
             default:
                 return base.onCommand(mlCommand);
         }
-        return this;
     }
 
     override
@@ -42,8 +44,9 @@ public class IntercomHandshake : IntercomState {
 
     override
     public void WriteDiscreteActionMask(IDiscreteActionMask actionMask) {
-        actionMask.SetActionEnabled(INTERCOM_ACTIONS_BRANCH, (int) IIntercomState.IntercomCommands.ACTION_DONOTHING, true);   // cannot disable whole branch
-        actionMask.SetActionEnabled(INTERCOM_ACTIONS_BRANCH, (int) IIntercomState.IntercomCommands.ACTION_CONNECT_ACCEPT, true);
-        actionMask.SetActionEnabled(INTERCOM_ACTIONS_BRANCH, (int) IIntercomState.IntercomCommands.ACTION_CONNECT_REJECT, true);
+        base.WriteDiscreteActionMask(actionMask);
+        actionMask.SetActionEnabled(INTERCOM_RESPONSES_BRANCH, (int) IIntercomState.IntercomCommands.ACTION_DONOTHING, true);   // cannot disable whole branch
+        actionMask.SetActionEnabled(INTERCOM_RESPONSES_BRANCH, (int) IIntercomState.IntercomCommandResponse.ACCEPT, true);
+        actionMask.SetActionEnabled(INTERCOM_RESPONSES_BRANCH, (int) IIntercomState.IntercomCommandResponse.REJECT, true);
     }
 }

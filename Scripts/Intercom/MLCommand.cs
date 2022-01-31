@@ -9,11 +9,11 @@ public class MLCommand {
         this.dicreteActions = discreteActions;
     }
 
-    public IIntercomState.IntercomCommands getBranch(int branchIdx) {
+    public int getBranch(int branchIdx) {
         if (dicreteActions == null)
             return 0;
         else {
-            IIntercomState.IntercomCommands command = (IIntercomState.IntercomCommands) dicreteActions[branchIdx];
+            int command = dicreteActions[branchIdx];
             return command;
         }
     }

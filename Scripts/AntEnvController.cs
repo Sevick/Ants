@@ -32,12 +32,14 @@ public class AntEnvController : MonoBehaviour {
         [HideInInspector]
         public Rigidbody Rb;
 
+        /*
         public ResourceProviderInfo(ResourceProvider resourceProvider) {
             this.transform = resourceProvider.gameObject.transform;
             this.StartingPos = resourceProvider.gameObject.transform.position;
             this.StartingRot = resourceProvider.gameObject.transform.rotation;
             this.Rb = resourceProvider.gameObject.GetComponent<Rigidbody>();
         }
+        */
     }
 
     [Header("Max Environment Steps")]
@@ -106,10 +108,12 @@ public class AntEnvController : MonoBehaviour {
         }
         agentsAlive = agentsCount;
 
+        /*
         ResourceProvider[] resourceProviders = GetComponentsInChildren<ResourceProvider>();
         foreach (var resourceProvider in resourceProviders) {
             resourceProvidersList.Add(new ResourceProviderInfo(resourceProvider));
         }
+        */
 
         foreach (var item in resourceProvidersList) {
             item.StartingPos = item.transform.transform.position;
@@ -147,7 +151,7 @@ public class AntEnvController : MonoBehaviour {
 
             var randomPosZ = Random.Range(-areaBounds.extents.z * spawnAreaMarginMultiplier,
                 areaBounds.extents.z * spawnAreaMarginMultiplier);
-            randomSpawnPos = ground.transform.position + new Vector3(randomPosX, 5.1f, randomPosZ);
+            randomSpawnPos = ground.transform.position + new Vector3(randomPosX, 0.1f, randomPosZ);
             if (Physics.CheckBox(randomSpawnPos, new Vector3(1.5f, 0.01f, 1.5f)) == false) {
                 foundNewSpawnLocation = true;
             }
@@ -183,8 +187,7 @@ public class AntEnvController : MonoBehaviour {
 
     /// Called when the agent moves the block into the goal.
     public void ScoredAGoal(Collider col, float score) {
-        print($"Scored {score} on {gameObject.name}");
-
+        Debug.Log($"Scored {score} on {gameObject.name}");
 
         //Disable the block
         col.gameObject.SetActive(false);
@@ -248,6 +251,7 @@ public class AntEnvController : MonoBehaviour {
 
     public void deactivateAgent(Ant agent) {
         agentGroup.GroupEpisodeInterrupted();
+        
         /*
         StartCoroutine(GoalScoredSwapGroundMaterial(goalScoredMaterial, 0.5f));
         agent.gameObject.SetActive(false);

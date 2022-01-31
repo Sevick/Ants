@@ -8,61 +8,84 @@ public class IntercomStateMachine : IIntercomState, ITickable {
     //private IIntercomState intercomState = new IntercomStateDisconnected();
     IntercomState currentState = null;
     IIntercomState partner;
+    Context context;
 
     public IntercomStateMachine() {
     }
 
-    public IntercomStateMachine(IIntercomState partner) {
-        init(partner);
+    public IntercomStateMachine(Context context) {
+        init(context);
     }
 
-    public void init(IIntercomState partner) {
-        this.currentState = new IntercomDisconnected(partner);
-        this.partner = partner;
+    public void init(Context context) {
+        this.currentState = new IntercomDisconnected(context);
+        this.context = context;
     }
 
-
-    public void setContext(Context context) {
-        currentState.setContext(context);
+    public IIntercomState.IntercomStateTypes type() {
+        if (currentState != null)
+            return currentState.type();
+        else
+            return IIntercomState.IntercomStateTypes.STATE_NULL;
     }
 
     public IntercomState onConnect() {
-        currentState = currentState.onConnect();
-        return currentState;
+        if (this.currentState != null) {
+            switchTo(currentState.onConnect());
+        }
+        return this.currentState;
     }
 
     public IntercomState onIncomingCommand(IIntercomState.IntercomCommands command) {
-        currentState = currentState.onIncomingCommand(command);
-        return currentState;
+        if (this.currentState != null) {
+            switchTo(currentState.onIncomingCommand(command));
+        }
+        return this.currentState;
     }
 
     public IntercomState onCommand(MLCommand mlCommand) {
-        currentState = currentState.onCommand(mlCommand);
-        return currentState;
+        if (this.currentState != null) {
+            switchTo(currentState.onCommand(mlCommand));
+        }
+        return this.currentState;
     }
 
-    public IntercomState onResponse(IIntercomState.IntercomCommands responseType) {
-        currentState = currentState.onResponse(responseType);
-        return currentState;
+    public IntercomState onResponse(IIntercomState.IntercomCommandResponse response, IIntercomState.IntercomCommands command, Context remoteContext) {
+        if (this.currentState != null) {
+            switchTo(currentState.onResponse(response, command, context));
+        }
+        return this.currentState;
     }
 
     public IntercomState onDisconnect() {
-        currentState = currentState.onDisconnect();
-        return currentState;
+        if (this.currentState != null) {
+            switchTo(currentState.onDisconnect());
+        }
+        return this.currentState;
     }
 
     public IntercomState onIncomingDisconnect() {
-        currentState = currentState.onIncomingDisconnect();
-        return currentState;
+        if (this.currentState != null) {
+            switchTo(currentState.onIncomingDisconnect());
+        }
+        
+        return this.currentState;
+    }
+
+    private void switchTo(IntercomState newState) {
+        //Debug.Log("-> " + newState.getStateName());
+        currentState = newState;
     }
 
 
     public void WriteDiscreteActionMask(IDiscreteActionMask actionMask) {
-        currentState.WriteDiscreteActionMask(actionMask);
+        if (this.currentState != null) {
+            this.currentState.WriteDiscreteActionMask(actionMask);
+        }
     }
 
     public void tick() {
-        if (currentState != null)
+        if (this.currentState != null)
             this.currentState.tick();
     }
 }

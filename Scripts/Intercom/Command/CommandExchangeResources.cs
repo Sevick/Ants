@@ -6,7 +6,7 @@ using Unity.MLAgents;
 
 public class CommandExchangeResources : Command {
 
-    public CommandExchangeResources() : base((int) IIntercomState.IntercomCommands.ACTION_PROPOSE_EXCHANGE, 1) {
+    public CommandExchangeResources() : base((int) IIntercomState.IntercomCommands.ACTION_PROPOSE_EXCHANGE_FOOD_TO_WATER, 1) {
     }
 
     override

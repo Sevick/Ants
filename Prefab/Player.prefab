@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7605917104001289489}
   - component: {fileID: 3025633038971583691}
   - component: {fileID: 7509000048733991888}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: Level
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -25,13 +25,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 205370368821406305}
+  serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: -0.99, z: 0}
   m_LocalScale: {x: 1, y: 0.01, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6620056273441764700}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &3025633038971583691
 MeshFilter:
@@ -58,10 +58,12 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 7f102abd8ed6a2f4bafbbec601572974, type: 2}
+  - {fileID: 2100000, guid: b3dc4c59fdd92f24e8167754d0abc2fe, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -94,7 +96,7 @@ GameObject:
   - component: {fileID: 2717980990178166251}
   - component: {fileID: 6966162822608822847}
   - component: {fileID: 3267330852322858629}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: Level
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -108,13 +110,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1545457350808337109}
+  serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: -0.6666667, z: 0}
   m_LocalScale: {x: 1, y: 0.33333334, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3475839946838091881}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &6966162822608822847
 MeshFilter:
@@ -141,6 +143,8 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -177,7 +181,7 @@ GameObject:
   - component: {fileID: 6620056273441764700}
   - component: {fileID: 6651043234552577110}
   - component: {fileID: 7451215579782020595}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: FoodTanker
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -191,6 +195,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4631650292010997500}
+  serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -0.8, y: 8, z: -3.5}
   m_LocalScale: {x: 1, y: 3, z: 1}
@@ -198,7 +203,6 @@ Transform:
   m_Children:
   - {fileID: 7605917104001289489}
   m_Father: {fileID: 5248235530515978225}
-  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &6651043234552577110
 MeshFilter:
@@ -225,6 +229,8 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -275,13 +281,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5131917585804197202}
+  serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 2.5, z: 0}
   m_LocalScale: {x: 6, y: 5, z: 10}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5248235530515978225}
-  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &466234499752985278
 MeshFilter:
@@ -308,6 +314,8 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -362,17 +370,16 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5248235530515978226}
+  serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2638914698631785585}
   - {fileID: 6620056273441764700}
   - {fileID: 3475839946838091881}
   - {fileID: 9112554355836872956}
   m_Father: {fileID: 0}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!114 &98255244265885757
 MonoBehaviour:
@@ -389,20 +396,23 @@ MonoBehaviour:
   m_SensorName: RayPerceptionSensor
   m_DetectableTags:
   - wall
-  - resource
+  - food
+  - water
   - agent
   m_RaysPerDirection: 3
   m_MaxRayDegrees: 70
-  m_SphereCastRadius: 0.5
-  m_RayLength: 50
+  m_SphereCastRadius: 2.5
+  m_RayLength: 40
   m_RayLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967291
+    m_Bits: 4294967177
   m_ObservationStacks: 1
+  m_AlternatingRayOrder: 1
+  m_UseBatchedRaycasts: 0
   rayHitColor: {r: 1, g: 0, b: 0, a: 1}
   rayMissColor: {r: 1, g: 1, b: 1, a: 1}
   m_StartVerticalOffset: 7
-  m_EndVerticalOffset: 1
+  m_EndVerticalOffset: 5
 --- !u!114 &285683227155617926
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -416,8 +426,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_BrainParameters:
-    VectorObservationSize: 15
-    NumStackedVectorObservations: 5
+    VectorObservationSize: 10
+    NumStackedVectorObservations: 1
     m_ActionSpec:
       m_NumContinuousActions: 3
       BranchSizes: 040000000500000004000000
@@ -432,7 +442,8 @@ MonoBehaviour:
   TeamId: 1
   m_UseChildSensors: 1
   m_UseChildActuators: 1
-  m_ObservableAttributeHandling: 0
+  m_DeterministicInference: 0
+  m_ObservableAttributeHandling: 2
 --- !u!114 &8752191094628849227
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -445,8 +456,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a5c9d521e5ef4759a8246a07d52221e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DecisionPeriod: 1
-  TakeActionsBetweenDecisions: 1
+  DecisionPeriod: 5
+  DecisionStep: 3
+  TakeActionsBetweenDecisions: 0
 --- !u!114 &9061379461795859546
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -464,8 +476,10 @@ MonoBehaviour:
   hasUpgradedFromAgentParameters: 1
   MaxStep: 0
   agentID: 0
+  personalReward: 0
+  age: 0
   defaultSceneOption: 2
-  useGroup: 1
+  useGroup: 0
   FoodTankerVolume: 150
   FoodTankerLeak: 1
   eatAmountLimit: 30
@@ -474,13 +488,19 @@ MonoBehaviour:
   drinkAmountLimit: 50
   moveSpeed: 1
   turnSpeed: 50
-  communicationLockTime: 20
+  commLockTime: 20
+  moveReward: 0
+  turnReward: 0
+  wallTouchReward: -0.001
   DEATH_REWARD: -1
-  RESOURCE_CONSUMPTION_REWARD: 0.5
+  RESOURCE_CONSUMPTION_REWARD: 0.001
   EXCHANGE_REWARD: 0.5
-  RESOURCE_SHORTAGE_REWARD: -0
+  RESOURCE_SHORTAGE_REWARD: -0.01
   RESOURCE_AMPLE_REWARD: 0
+  AgeReward: 0
   debugComm: 0
+  debugLog: 0
+  connectedAgent: {fileID: 0}
   test: 0
 --- !u!54 &5248235530515978191
 Rigidbody:
@@ -489,10 +509,21 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5248235530515978226}
-  serializedVersion: 2
+  serializedVersion: 4
   m_Mass: 1
   m_Drag: 0
   m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 1
@@ -506,9 +537,17 @@ BoxCollider:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5248235530515978226}
   m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
   m_IsTrigger: 0
+  m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
+  serializedVersion: 3
   m_Size: {x: 6, y: 5, z: 10}
   m_Center: {x: 0, y: 2.5, z: 0}
 --- !u!1 &7753775585241813328
@@ -522,7 +561,7 @@ GameObject:
   - component: {fileID: 3475839946838091881}
   - component: {fileID: 3732864123484040924}
   - component: {fileID: 6784982011790345340}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: WaterTanker
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -536,6 +575,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7753775585241813328}
+  serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0.8, y: 8, z: -3.5}
   m_LocalScale: {x: 1, y: 3, z: 1}
@@ -543,7 +583,6 @@ Transform:
   m_Children:
   - {fileID: 2717980990178166251}
   m_Father: {fileID: 5248235530515978225}
-  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &3732864123484040924
 MeshFilter:
@@ -570,6 +609,8 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -595,86 +636,3 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1001 &2638914698632181379
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    m_TransformParent: {fileID: 5248235530515978225}
-    m_Modifications:
-    - target: {fileID: 100114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_Name
-      value: spider
-      objectReference: {fileID: 0}
-    - target: {fileID: 100114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_RootOrder
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.7071068
-      objectReference: {fileID: 0}
-    - target: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0.7071068
-      objectReference: {fileID: 0}
-    - target: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 90
-      objectReference: {fileID: 0}
-    - target: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 11100000, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
-      propertyPath: m_AnimatePhysics
-      value: 1
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 7b12ff0838c1bfc46970414ffe81e813, type: 3}
---- !u!4 &2638914698631785585 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 400114, guid: 7b12ff0838c1bfc46970414ffe81e813,
-    type: 3}
-  m_PrefabInstance: {fileID: 2638914698632181379}
-  m_PrefabAsset: {fileID: 0}

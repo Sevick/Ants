@@ -27,6 +27,9 @@ public class IntercomProcessCommand : IntercomState, ITickable {
         IIntercomState.IntercomCommandResponse response = (IIntercomState.IntercomCommandResponse) mlCommand.getBranch(INTERCOM_RESPONSES_BRANCH);
         switch (response) {
             case IIntercomState.IntercomCommandResponse.ACCEPT:
+                context.addReward(0.01f);
+                context.partner.onResponse(response, this.command, context);
+                return new IntercomConnected(context);
             case IIntercomState.IntercomCommandResponse.REJECT:
                 context.partner.onResponse(response, this.command, context);
                 return new IntercomConnected(context);

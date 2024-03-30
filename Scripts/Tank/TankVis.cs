@@ -9,6 +9,10 @@ public class TankVis : ITank {
     private Transform tankerLevel;
 
 
+    public string getName() {
+        return tanker.name;
+    }
+
     public TankVis(ITank tankImpl, GameObject tanker) {
         this.tankImpl = tankImpl;
         this.tanker = tanker;
@@ -21,7 +25,11 @@ public class TankVis : ITank {
     }
 
     private void updateStats() {
-        float scale = (float) currentLevel() / tankCapacity();
+        float scale;
+        if (tankCapacity() != 0)
+            scale = (float)currentLevel() / tankCapacity();
+        else
+            scale = 1.0f;
         tankerLevel.localScale = new Vector3(tankerLevel.localScale.x, scale, tankerLevel.localScale.z);
         tankerLevel.localPosition = new Vector3(tankerLevel.localPosition.x, scale - 1, tankerLevel.localPosition.z);
     }

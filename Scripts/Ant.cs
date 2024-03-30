@@ -11,16 +11,20 @@ using UnityEngine;
 //throw new System.NotImplementedException();
 public class Ant : Agent {
 
-    static int agentIdCount = 0;
-    public int agentID;
+    private static int agentIdCount = 0;
 
-    [HideInInspector]
-    public Dictionary<LifeResourceType, ITank> resourceMap = new Dictionary<LifeResourceType, ITank>();
+    public int agentID;                 // set on runtime
+    public float personalReward = 0;    // set on runtime
+    public long age = 0 ;               // set on runtime
 
     private GameObject area;
     private Rigidbody agentRb;
     private TextMesh header;
     private Renderer bodyRenderer;
+
+    [HideInInspector]
+    public Dictionary<LifeResourceType, ITank> resourceMap = new Dictionary<LifeResourceType, ITank>();
+
 
     [Tooltip("Lesson to set if curriculum learning is not configured")]
     public int defaultSceneOption = 2;
@@ -45,10 +49,17 @@ public class Ant : Agent {
     [Header("Movement configuration")]
     public float moveSpeed = 2;
     public float turnSpeed = 100;
+
+   
     [Tooltip("Number of ticks agent will be locked for communications")]
-    public int communicationLockTime = 20;
+    public int commLockTime = 20;
+    
 
     [Header("Rewards configuration")]
+    public float moveReward = -0.0001f;
+    public float turnReward = -0.0002f;
+    public float wallTouchReward = -0.001f;
+
     public float DEATH_REWARD = -1.0f;
     public float RESOURCE_CONSUMPTION_REWARD = 0.02f;
     public float EXCHANGE_REWARD = 0.01f;
@@ -56,9 +67,13 @@ public class Ant : Agent {
     public float RESOURCE_SHORTAGE_REWARD = -0.01f;
     [Tooltip("0 to disable satiety reward")]    
     public float RESOURCE_AMPLE_REWARD = 0.0f;
+    public float AgeReward = 0.01f;
 
-    [Header("Debug")]
+    [Header("Debug comm")]
     public bool debugComm = false;
+    [Header("Debug log")]
+    public bool debugLog = false;
+
 
 
     //branch 0
@@ -66,7 +81,8 @@ public class Ant : Agent {
 
 
     private long tickNum = 0;
-    private Ant connectedAgent = null;
+
+    public Ant connectedAgent = null;
 
     public IntercomStateMachine stateMachine;
     private int communicationLockTimeLeft = 0;
@@ -76,19 +92,52 @@ public class Ant : Agent {
     [HideInInspector]
     public int test = 0;
 
-    GameObject foodTanker;
-    GameObject waterTanker;
+    GameObject foodTanker;      // internal food storage, dropping some comment every tick
+    GameObject waterTanker;     // internal water storage, dropping some comment every tick
+
+    private void DebugLog(String log) {
+        if (debugLog) {
+            Debug.Log(log);
+        }
+    }
 
 
     private void Awake() {
-        //Debug.Log("Awake");
+        DebugLog("Awake");
         Init();
         SetResetParams();
     }
 
     void Start() {
-        //Debug.Log("Ant: Start");
+        DebugLog("Ant: Start");
         Init();
+    }
+
+    void lockMove(bool locked) {
+        DebugLog("lockMove");
+        if (locked) {
+            agentRb.velocity = Vector3.zero;
+            communicationLockTimeLeft = commLockTime;
+            
+        }
+        else {
+            if (stateMachine != null) {
+                stateMachine.onDisconnect();
+                stateMachine = null;
+                connectedAgent = null;
+            }
+        }
+    }
+
+    void disconnect() {
+        DebugLog("disconnect");
+        setColor(0);
+        if (connectedAgent != null) {
+            connectedAgent = null;
+            connectedAgent.disconnect();            
+        }
+        stateMachine = null;
+        communicationLockTimeLeft = 0;
     }
 
 
@@ -98,13 +147,13 @@ public class Ant : Agent {
         //RaycastHit mouseHit;
         //Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         //if (Physics.Raycast(ray, out mouseHit, 100) && mouseHit.collider.gameObject.name == this.gameObject.name) {
-        //    Debug.Log("Mouse is pointing to me! Im a choosen one!");
+        //    DebugLog("Mouse is pointing to me! Im a choosen one!");
         //}
 
-        if (connectedAgent == null)
-            setColor(0);
-        else
-            setColor(1);
+        age++;
+        if (age%500 == 0) {
+            addReward(age/100 * AgeReward);
+        }
 
         foreach (KeyValuePair<LifeResourceType, ITank> entry in resourceMap) {
             entry.Value.tick();
@@ -115,12 +164,12 @@ public class Ant : Agent {
                 addReward(RESOURCE_AMPLE_REWARD);
         }
 
-        /*
+        
         if (Academy.Instance.EnvironmentParameters.GetWithDefault("curriculum_option", defaultSceneOption) >= 1)
-            header.text = "Food: " + resourceMap[LifeResourceType.Food].currentVolume + "\nWater:" + resourceMap[LifeResourceType.Water].currentVolume;
+            header.text = "Food: " + resourceMap[LifeResourceType.Food].currentLevel() + "\nWater:" + resourceMap[LifeResourceType.Water].currentLevel();
         else
-            header.text = "Food: " + resourceMap[LifeResourceType.Food].currentVolume;
-        */
+            header.text = "Food: " + resourceMap[LifeResourceType.Food].currentLevel();
+        
     }
 
     // Called automatically by Unity once every Physics step.
@@ -128,19 +177,23 @@ public class Ant : Agent {
     }
 
     void addReward(float score) {
-        if (useGroup) {
-            //agentGroup.AddGroupReward(score);
-            antEnvController.Score(score);
-        }
+        personalReward += score;
         AddReward(score);
     }
 
     void Die(ITank sender) {
-        //Debug.Log("Die called with message: " + message);
+        DebugLog("Die called by " + sender.getName());
+        if (connectedAgent != null) {
+            disconnect();
+        }
         bodyRenderer.material.SetColor("_Color", new Color32(255, 0, 0, 255));
 
         addReward(DEATH_REWARD);
+        EndEpisode();
+        Init();
         antEnvController.deactivateAgent(this);
+        
+
 
         /*
         Ant newAgent = Instantiate(this, new Vector3(Random.Range(-50, 50), 5f, Random.Range(-50, 50)) + area.transform.position, Quaternion.Euler(new Vector3(0f, Random.Range(0, 360))));
@@ -171,28 +224,30 @@ public class Ant : Agent {
         */
     }
 
-
     void OnCollisionEnter(Collision collision) {
-
         switch (collision.gameObject.tag) {
             case "wall":
-                addReward(-0.1f);
+                addReward(wallTouchReward);
+                //collision.gameObject.GetComponent<EventDisplay>().displayEvent();
                 break;
             case "agent":
-                if (connectedAgent == null) {
+                if (connectedAgent == null && collision.gameObject.GetComponent<Ant>().connectedAgent == null) {
+                    setColor(1);
                     Ant connectedAgent = collision.gameObject.GetComponent<Ant>();
                     var localStateMachine = new IntercomStateMachine();
-                    var remoteStateMachine = new IntercomStateMachine(new Context(localStateMachine, connectedAgent.resourceMap, connectedAgent.addReward));
-                    localStateMachine.init(new Context(remoteStateMachine, resourceMap, this.addReward));
+                    var remoteStateMachine = new IntercomStateMachine(new Context(localStateMachine, connectedAgent.resourceMap, connectedAgent.addReward, connectedAgent.lockMove));
+                    localStateMachine.init(new Context(remoteStateMachine, resourceMap, this.addReward, this.lockMove));
                     stateMachine = localStateMachine;
                     connectedAgent.stateMachine = remoteStateMachine;
-                    communicationLockTimeLeft = communicationLockTime;
+                    lockMove(true);
+                    connectedAgent.lockMove(true);
                 }
                 else {
                     // do nothing - already busy with some other communication
                 }
                 break;
-            case "resource":
+            case "food":
+            case "water":
                 Dispenser resourceDispenser = collision.gameObject.GetComponent<Dispenser>();
                 if (resourceDispenser != null) {
                     try {
@@ -200,6 +255,8 @@ public class Ant : Agent {
                         int refilledAmount = tank.pumpFrom(resourceDispenser.tank, tank.tankConsumeLimit());
                         //Debug.Log("Consumed " + refilledAmount + " of " + resourceDispenser.tankResourceType() + " currentLevel=" + tank.currentLevel());
                         if (refilledAmount > 0) {
+                            addReward(RESOURCE_CONSUMPTION_REWARD);
+                            /*
                             if (Academy.Instance.EnvironmentParameters.GetWithDefault("curriculum_option", defaultSceneOption) > 0) {
                                 addReward(RESOURCE_CONSUMPTION_REWARD * refilledAmount / (tank.currentLevel() - refilledAmount));
                             }
@@ -207,6 +264,7 @@ public class Ant : Agent {
                                 addReward(1.0f);
                                 EndEpisode();
                             }
+                            */
 
                         }
                     }
@@ -240,19 +298,27 @@ public class Ant : Agent {
             }
         }
 
+        bool motionDetect = false;
+        if (continuousActions[0] != 0 || continuousActions[1] != 0) {
+            addReward(moveReward);
+            motionDetect = true;
+        }
         if (continuousActions[2] != 0) {
-            //AddReward(-0.01f); // rotate penalty
+            addReward(turnReward); // rotate penalty
+            motionDetect = true;
         };
+        if (!motionDetect)
+            DebugLog("Agent is still");
 
         int setColorCommand = discreteActions[0];
-        if (setColorCommand != ACTION_SETCOLOR_DONOTHING_IDX)
-            setColor(setColorCommand - 1);
-
+        if (setColorCommand != ACTION_SETCOLOR_DONOTHING_IDX) {
+            //setColor(setColorCommand - 1);
+        }
+        DebugLog("discreteActions.Length=" + discreteActions.Length);
         if (discreteActions.Length > 1) {
             if (stateMachine != null) {
                 if (stateMachine.onCommand(new MLCommand(discreteActions.Array)) == null) {
-                    connectedAgent = null;
-                    stateMachine = null;                    
+                    disconnect();
                 }
             }
         }
@@ -268,13 +334,10 @@ public class Ant : Agent {
             MoveAgent(actionBuffers, true);
             //MoveAgent(actionBuffers.DiscreteActions);            
             communicationLockTimeLeft--;
-            if (communicationLockTimeLeft == 0)
-                if (stateMachine != null) {
-                    Debug.Log("Timeout disconnect");
-                    stateMachine.onDisconnect();
-                    stateMachine = null;
-                    connectedAgent = null;
-                }
+            if (communicationLockTimeLeft == 0) {
+                DebugLog("Timeout disconnect");
+                lockMove(false);
+            }
         }
     }
 
@@ -284,21 +347,23 @@ public class Ant : Agent {
         var rotateDir = Vector3.zero;
 
         var action = act[0];
-
+        DebugLog("MoveAgent : ActionSegment");
         switch (action) {
             case 1:
                 dirToGo = transform.forward * 1f;
+                addReward(moveReward);
                 break;
             case 2:
                 dirToGo = transform.forward * -1f;
+                addReward(moveReward);
                 break;
             case 3:
                 rotateDir = transform.up * 1f;
-                //AddReward(-0.1f);
+                addReward(turnReward);
                 break;
             case 4:
                 rotateDir = transform.up * -1f;
-                //AddReward(-0.1f);
+                addReward(turnReward);
                 break;
             case 5:
                 // do nothing
@@ -313,14 +378,15 @@ public class Ant : Agent {
                 setColor(2);
                 break;
         }
-        transform.Rotate(rotateDir, Time.fixedDeltaTime * 200f);
+        transform.Rotate(rotateDir, Time.fixedDeltaTime * 100f);
         agentRb.AddForce(dirToGo * moveSpeed,
             ForceMode.VelocityChange);
-
+/*
         // slow it down
         if (agentRb.velocity.sqrMagnitude > 25f) {
             agentRb.velocity *= 0.95f;
         }
+*/
     }
 
 
@@ -346,6 +412,7 @@ public class Ant : Agent {
 
         /*
         for (int i = 1; i <= 10; i = i + 1) {
+            actionMask.SetActionEnabled(3, i, resourceExchangeEnabled);
             actionMask.SetActionEnabled(3, i, resourceExchangeEnabled);
         }
 
@@ -424,13 +491,12 @@ public class Ant : Agent {
 
     public override void CollectObservations(VectorSensor sensor) {
         var localVelocity = transform.InverseTransformDirection(agentRb.velocity);
+        sensor.AddObservation(transform.rotation.y);
+        sensor.AddObservation(agentRb.angularVelocity.y);
+        sensor.AddObservation(transform.position.x);
+        sensor.AddObservation(transform.position.z);
         sensor.AddObservation(localVelocity.x);
         sensor.AddObservation(localVelocity.z);
-        sensor.AddObservation(transform.rotation.y);
-        //sensor.AddObservation(transform.rotation);
-        //sensor.AddObservation(transform.forward);
-        sensor.AddObservation(transform.position.x - area.transform.position.x);
-        sensor.AddObservation(transform.position.z - area.transform.position.z);
         //sensor.AddObservation(transform.position - area.transform.position);
 
         if (communicationLockTimeLeft > 0)
@@ -448,10 +514,10 @@ public class Ant : Agent {
 
         sensor.AddObservation(communicationLockTimeLeft > 0);
 
-        if (stateMachine!=null)
-            sensor.AddOneHotObservation((int) stateMachine.type(), (int) IIntercomState.IntercomStateTypes.STATE_LAST);
-        else
-            sensor.AddOneHotObservation((int)IIntercomState.IntercomStateTypes.STATE_NULL, (int)IIntercomState.IntercomStateTypes.STATE_LAST);
+        //if (stateMachine!=null)
+        //    sensor.AddOneHotObservation((int) stateMachine.type(), (int) IIntercomState.IntercomStateTypes.STATE_LAST);
+        //else
+        //    sensor.AddOneHotObservation((int)IIntercomState.IntercomStateTypes.STATE_NULL, (int)IIntercomState.IntercomStateTypes.STATE_LAST);
 
         //AddObservation(stateMachine.type());
         //sensor.AddOneHotObservation((int)commStatus, Enum.GetValues(typeof(CommStatusEnum)).Length);
@@ -459,7 +525,10 @@ public class Ant : Agent {
 
 
     private void Init() {
+        DebugLog("Init");
         agentID = agentIdCount++;
+        personalReward = 0;
+        age = 0;
 
         antEnvController = this.transform.parent.GetComponent<AntEnvController>();
         agentRb = this.GetComponent<Rigidbody>();
@@ -519,8 +588,6 @@ public class Ant : Agent {
     }
 
     public void OnDrawGizmos() {
-        
-
         if (connectedAgent != null) {
             Debug.Log("DrawConnection");
             Vector3 a = this.gameObject.transform.position;

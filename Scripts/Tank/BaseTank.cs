@@ -18,6 +18,10 @@ public class BaseTank : ITank {
         this.capacity = capacity;        
     }
 
+    public string getName() {
+        return "BaseTank";
+    }
+
     public BaseTank(LifeResourceType lifeResource, int capacity, int initLevel = 0, int consumeLimit = -1, int fillLimit = -1, ITank.TankEmptyActionType onEmptyAction = null)
         : this(lifeResource, capacity) {
 

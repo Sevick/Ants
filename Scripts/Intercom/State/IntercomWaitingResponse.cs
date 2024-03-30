@@ -32,10 +32,10 @@ public class IntercomWaitingResponse : IntercomState {
                     .pumpFrom(remoteContext.resourceMap[LifeResourceType.Food], context.resourceMap[LifeResourceType.Water].tankConsumeLimit());
 
                 sumLevelAfter = context.resourceMap[LifeResourceType.Water].currentLevel() + remoteContext.resourceMap[LifeResourceType.Food].currentLevel();
-                if (sumLevelAfter == sumLevelBefore) 
-                    Debug.Log("ACTION_PROPOSE_EXCHANGE_FOOD_TO_WATER pumped " + pumpedAmount + " food to water");
-                else 
-                    Debug.LogWarning("ACTION_PROPOSE_EXCHANGE_FOOD_TO_WATER pumped " + pumpedAmount + " food to water "+ " sumLevelBefore="+sumLevelBefore+"   sumLevelAfter="+sumLevelAfter);
+                //if (sumLevelAfter == sumLevelBefore) 
+                //    Debug.Log("ACTION_PROPOSE_EXCHANGE_FOOD_TO_WATER pumped " + pumpedAmount + " food to water");
+                //else 
+                //    Debug.LogWarning("ACTION_PROPOSE_EXCHANGE_FOOD_TO_WATER pumped " + pumpedAmount + " food to water "+ " sumLevelBefore="+sumLevelBefore+"   sumLevelAfter="+sumLevelAfter);
 
                 if (pumpedAmount > 0)
                     context.addReward(0.01f);
@@ -45,10 +45,10 @@ public class IntercomWaitingResponse : IntercomState {
                 pumpedAmount = context.resourceMap[LifeResourceType.Food]
                     .pumpFrom(remoteContext.resourceMap[LifeResourceType.Water], context.resourceMap[LifeResourceType.Food].tankConsumeLimit());
                 sumLevelAfter = context.resourceMap[LifeResourceType.Food].currentLevel() + remoteContext.resourceMap[LifeResourceType.Water].currentLevel();
-                if (sumLevelAfter == sumLevelBefore)
-                    Debug.Log("ACTION_PROPOSE_EXCHANGE_WATER_TO_FOOD pumped " + pumpedAmount + " food to water");
-                else
-                    Debug.LogWarning("ACTION_PROPOSE_EXCHANGE_WATER_TO_FOOD pumped " + pumpedAmount + " water to food " + " sumLevelBefore=" + sumLevelBefore + "   sumLevelAfter=" + sumLevelAfter);
+                //if (sumLevelAfter == sumLevelBefore)
+                //    Debug.Log("ACTION_PROPOSE_EXCHANGE_WATER_TO_FOOD pumped " + pumpedAmount + " food to water");
+                //else
+                //    Debug.LogWarning("ACTION_PROPOSE_EXCHANGE_WATER_TO_FOOD pumped " + pumpedAmount + " water to food " + " sumLevelBefore=" + sumLevelBefore + "   sumLevelAfter=" + sumLevelAfter);
 
                 if (pumpedAmount > 0)
                     context.addReward(0.01f);

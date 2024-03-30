@@ -10,7 +10,6 @@ public class Dispenser : MonoBehaviour
     public int capacity;
 
     private Text textComponent;
-    private Text uiText;
     public ITank tank;
 
     public void reset() {

@@ -22,4 +22,6 @@ public interface ITank : ITickable {
     public int spaceLeft();
 
     public void reset();
+
+    public string getName();
 }

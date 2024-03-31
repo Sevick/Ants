@@ -9,3 +9,7 @@ There should be at least one reservour of food and water on the map. Physical co
 
 Phase2:
 Enables intercommunication between agents, allowing them to exchange resources. Comminucation ("session") could be establish after physical contact between two agents and requires some "handshake", that been completed prevent both sides from having any other communication (thus only one session is possible at a time for an agent).
+
+
+Curren model in action (283)
+https://youtu.be/zZ29IIKC4aU
